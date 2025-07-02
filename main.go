@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/mvillene/zoink/cmd"
+	"github.com/iammatthew2/zoink/cmd"
 )
 
 func main() {
