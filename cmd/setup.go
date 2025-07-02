@@ -223,8 +223,8 @@ popd() {
     builtin popd "$@" && zoink_track
 }
 
-# Main z command for navigation
-z() {
+# Main x command for navigation (dev alias - change to "z" once stable)
+x() {
     if [ $# -eq 0 ]; then
         # No arguments: show interactive selection
         local result
@@ -255,8 +255,8 @@ function cd
     and zoink_track
 end
 
-# Main z command for navigation
-function z
+# Main x command for navigation (dev alias - change to "z" once stable)
+function x
     if test (count $argv) -eq 0
         # No arguments: show interactive selection
         set result (zoink --interactive)

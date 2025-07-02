@@ -79,9 +79,27 @@ help:
 	@echo "  test-coverage  Run tests with coverage"
 	@echo "  clean          Clean build artifacts"
 	@echo "  setup          Setup development environment"
+	@echo "  dev-setup      Setup with local binary and shell integration"
 	@echo "  run            Build and run the application"
 	@echo "  build-all      Build for multiple platforms"
 	@echo "  completions    Generate shell completions"
 	@echo "  fmt            Format code"
 	@echo "  lint           Run linter"
 	@echo "  deps           Download and tidy dependencies"
+	@echo ""
+	@echo "Development workflow:"
+	@echo "  1. make dev-setup    # Sets up shell integration with local binary"
+	@echo "  2. export PATH=\"\$$(pwd)/bin:\$$PATH\"  # Use local binary in current shell"
+	@echo "  3. source ~/.zshrc   # Restart shell to activate z alias"
+
+# Development setup with shell integration
+dev-setup: build
+	@echo "Setting up development environment with local binary..."
+	@echo "Adding $(PWD)/bin to PATH and running setup..."
+	PATH="$(PWD)/bin:$$PATH" ./bin/$(BINARY_NAME) setup --quiet
+	@echo ""
+	@echo "Development setup complete!"
+	@echo "To use the local zoink binary in your current shell, run:"
+	@echo "  export PATH=\"$(PWD)/bin:\$$PATH\""
+	@echo ""
+	@echo "Then restart your shell or run: source ~/.zshrc (or your shell's config)"
