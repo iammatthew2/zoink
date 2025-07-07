@@ -266,10 +266,28 @@ x() {
         result=$(zoink --interactive)
         [ -n "$result" ] && cd "$result"
     else
-        # With arguments: pass to zoink for path resolution
-        local result
-        result=$(zoink "$@")
-        [ -n "$result" ] && cd "$result"
+        # Check if any argument starts with a dash (flag)
+        local has_flags=false
+        for arg in "$@"; do
+            case "$arg" in
+                -*) has_flags=true; break ;;
+            esac
+        done
+        
+        if [ "$has_flags" = true ]; then
+            # Has flags: run directly without cd (let zoink handle it)
+            zoink "$@"
+        else
+            # No flags: treat as navigation query
+            local result
+            result=$(zoink "$@")
+            if [ $? -eq 0 ] && [ -n "$result" ] && [ -d "$result" ]; then
+                cd "$result"
+            else
+                # If no valid directory returned, just show the output
+                echo "$result"
+            fi
+        fi
     fi
 }
 
@@ -299,10 +317,27 @@ function x
             cd "$result"
         end
     else
-        # With arguments: pass to zoink for path resolution
-        set result (zoink $argv)
-        if test -n "$result"
-            cd "$result"
+        # Check if any argument starts with a dash (flag)
+        set has_flags false
+        for arg in $argv
+            if string match -q -- '-*' $arg
+                set has_flags true
+                break
+            end
+        end
+        
+        if test "$has_flags" = "true"
+            # Has flags: run directly without cd (let zoink handle it)
+            zoink $argv
+        else
+            # No flags: treat as navigation query
+            set result (zoink $argv)
+            if test $status -eq 0 -a -n "$result" -a -d "$result"
+                cd "$result"
+            else
+                # If no valid directory returned, just show the output
+                echo "$result"
+            end
         end
     end
 end

@@ -12,10 +12,10 @@ zoink add /path/to/dir                # Manually add directory
 zoink remove /path/to/dir             # Remove directory
 
 # Navigation (working)
-zoink foo                             # Navigate to best match for "foo"
-zoink -i docs                         # Interactive selection (coming soon)
-zoink -l work                         # List all matches without navigating
-zoink --echo project                  # Print best match path only
+x foo                                 # Navigate to best match for "foo" (shell alias)
+x -i docs                             # Interactive selection (coming soon)
+x -l work                             # List all matches without navigating
+zoink --echo project                  # Print best match path only (direct command)
 ```
 
 ## Shell Integration
@@ -93,17 +93,17 @@ cd ~/projects/my-app
 cd ~/Documents/work  
 cd ~/dev/zoink
 
-# Quick navigation with frecency ranking
-zoink proj          # → ~/projects/my-app (most frequent/recent match)
-zoink doc           # → ~/Documents/work
-zoink zoink         # → ~/dev/zoink
+# Quick navigation with frecency ranking (using shell alias)
+x proj              # → ~/projects/my-app (most frequent/recent match)
+x doc               # → ~/Documents/work
+x zoink             # → ~/dev/zoink
 
 # List and inspect without navigating
-zoink -l            # Lists all tracked directories with visit counts
+x -l                # Lists all tracked directories with visit counts
 zoink --echo proj   # Prints best match path only
 
-# Management
-zoink stats         # Show usage statistics
+# Management (use full command name)
+zoink stats         # Show usage statistics and database location
 zoink clean         # Remove deleted directories  
 zoink add ~/new/dir # Manually add a directory
 zoink remove ~/old  # Remove a directory from tracking
@@ -126,8 +126,8 @@ export PATH="$(pwd)/bin:$PATH"        # Use local binary
 source ~/.zshrc                       # Activate shell integration
 
 # Test functionality
-zoink stats                           # View database statistics
-zoink --list                         # List all tracked directories
+zoink stats                           # View database statistics with location
+x -l                                  # List all tracked directories using shell alias
 zoink --echo some_dir                # Test path resolution
 ```
 
