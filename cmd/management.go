@@ -68,7 +68,7 @@ func handleStats() {
 
 	// Check if database exists
 	if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
-		fmt.Println("⚠️  Database does not exist yet")
+		fmt.Println("Database does not exist yet")
 		fmt.Println("Visit some directories or use 'zoink add /path' to create it")
 		return
 	}
@@ -89,7 +89,7 @@ func handleStats() {
 	}
 
 	if len(entries) == 0 {
-		fmt.Println("📊 Database is empty")
+		fmt.Println("Database is empty")
 		return
 	}
 
@@ -118,9 +118,10 @@ func handleStats() {
 	avgVisits := float64(totalVisits) / float64(len(entries))
 
 	// Display statistics
-	fmt.Println("📊 Database Statistics")
+	fmt.Println("Database Statistics")
 	fmt.Println("===================")
 	fmt.Println()
+	fmt.Printf("Database location: %s\n", cfg.DatabasePath)
 	fmt.Printf("Total entries: %d\n", len(entries))
 	fmt.Printf("Total visits: %d\n", totalVisits)
 	fmt.Printf("Average visits per directory: %.1f\n", avgVisits)
@@ -142,7 +143,7 @@ func handleStats() {
 		return entries[i].VisitCount > entries[j].VisitCount
 	})
 
-	fmt.Println("\n🏆 Top 5 Most Visited:")
+	fmt.Println("\nTop 5 Most Visited:")
 	limit := 5
 	if len(entries) < limit {
 		limit = len(entries)
@@ -168,7 +169,7 @@ func handleClean() {
 
 	// Check if database exists
 	if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
-		fmt.Println("⚠️  Database does not exist yet")
+		fmt.Println("Database does not exist yet")
 		return
 	}
 
@@ -188,7 +189,7 @@ func handleClean() {
 	}
 
 	if len(entries) == 0 {
-		fmt.Println("📊 Database is empty - nothing to clean")
+		fmt.Println("Database is empty - nothing to clean")
 		return
 	}
 
@@ -201,12 +202,12 @@ func handleClean() {
 	}
 
 	if len(toRemove) == 0 {
-		fmt.Printf("✅ All %d directories still exist - nothing to clean\n", len(entries))
+		fmt.Printf("All %d directories still exist - nothing to clean\n", len(entries))
 		return
 	}
 
 	// Remove non-existent directories
-	fmt.Printf("🧹 Cleaning %d non-existent directories:\n", len(toRemove))
+	fmt.Printf("Cleaning %d non-existent directories:\n", len(toRemove))
 	for _, path := range toRemove {
 		fmt.Printf("  - %s\n", path)
 		if err := db.RemoveDirectory(path); err != nil {
@@ -221,7 +222,7 @@ func handleClean() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("✅ Cleaned %d entries. %d directories remain.\n",
+	fmt.Printf("Cleaned %d entries. %d directories remain.\n",
 		len(toRemove), len(entries)-len(toRemove))
 }
 
@@ -285,7 +286,7 @@ func handleRemove(dir string) {
 
 	// Check if database exists
 	if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
-		fmt.Println("⚠️  Database does not exist yet")
+		fmt.Println("Database does not exist yet")
 		return
 	}
 
@@ -329,5 +330,5 @@ func handleRemove(dir string) {
 		os.Exit(1)
 	}
 
-	fmt.Printf("✅ Removed: %s\n", absDir)
+	fmt.Printf("Removed: %s\n", absDir)
 }

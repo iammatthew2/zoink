@@ -168,6 +168,11 @@ func handleQuietSetup(shells []ShellInfo) {
 
 	// Install for the detected shell
 	if err := installShellHook(*targetShell); err != nil {
+		if strings.HasPrefix(err.Error(), "ALREADY_INSTALLED:") {
+			configFile := strings.TrimPrefix(err.Error(), "ALREADY_INSTALLED:")
+			fmt.Printf("Zoink integration already configured in %s\n", configFile)
+			return
+		}
 		fmt.Fprintf(os.Stderr, "Error installing shell hook: %v\n", err)
 		os.Exit(1)
 	}
@@ -212,11 +217,16 @@ func handleInteractiveSetup(shells []ShellInfo) {
 		fmt.Printf("\nInstalling Zoink integration for %s...\n", shell.Name)
 
 		if err := installShellHook(shell); err != nil {
+			if strings.HasPrefix(err.Error(), "ALREADY_INSTALLED:") {
+				configFile := strings.TrimPrefix(err.Error(), "ALREADY_INSTALLED:")
+				fmt.Printf("Zoink integration already configured in %s\n", filepath.Base(configFile))
+				continue
+			}
 			fmt.Fprintf(os.Stderr, "Error installing %s hook: %v\n", shell.Name, err)
 			continue
 		}
 
-		fmt.Printf("✓ Successfully configured %s\n", shell.Name)
+		fmt.Printf("Successfully configured %s\n", shell.Name)
 	}
 
 	fmt.Println("\nSetup complete!")
@@ -332,7 +342,8 @@ func installShellHook(shell ShellInfo) error {
 
 	// Check if already installed
 	if isHookInstalled(shell.ConfigFile, marker) {
-		return fmt.Errorf("zoink integration already installed in %s", shell.ConfigFile)
+		// Return a special message indicating it's already configured (not an error)
+		return fmt.Errorf("ALREADY_INSTALLED:%s", shell.ConfigFile)
 	}
 
 	// Create user config file directory if it doesn't exist

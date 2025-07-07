@@ -64,10 +64,10 @@ func handleNavigation(query string, config *NavigationConfig) {
 	// Check if database exists
 	if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
 		if config.ListOnly {
-			fmt.Println("⚠️  Database does not exist yet")
+			fmt.Println("Database does not exist yet")
 			return
 		}
-		fmt.Fprintf(os.Stderr, "⚠️  Database does not exist yet. Visit some directories first.\n")
+		fmt.Fprintf(os.Stderr, "Database does not exist yet. Visit some directories first.\n")
 		os.Exit(1)
 	}
 
@@ -98,7 +98,7 @@ func handleNavigation(query string, config *NavigationConfig) {
 	if len(entries) == 0 {
 		if config.ListOnly {
 			if query == "" {
-				fmt.Println("📊 Database is empty")
+				fmt.Println("Database is empty")
 			} else {
 				fmt.Printf("No directories found matching '%s'\n", query)
 			}
@@ -186,8 +186,8 @@ func printDirectoryList(entries []*database.DirectoryEntry) {
 
 	for i, entry := range entries {
 		fmt.Printf("  %d. %s\n", i+1, entry.Path)
-		fmt.Printf("     Visits: %d | Last: %s\n", 
-			entry.VisitCount, 
+		fmt.Printf("     Visits: %d | Last: %s\n",
+			entry.VisitCount,
 			formatLastVisit(entry.LastVisited))
 		if i < len(entries)-1 {
 			fmt.Println()
@@ -197,8 +197,24 @@ func printDirectoryList(entries []*database.DirectoryEntry) {
 
 // formatLastVisit formats the last visit timestamp
 func formatLastVisit(timestamp int64) string {
-	// This is a simple implementation - can be enhanced
-	return "recent" // TODO: Implement proper time formatting
+	lastVisited := time.Unix(timestamp, 0)
+	elapsed := time.Since(lastVisited)
+
+	if elapsed < time.Minute {
+		return "just now"
+	} else if elapsed < time.Hour {
+		mins := int(elapsed.Minutes())
+		return fmt.Sprintf("%dm ago", mins)
+	} else if elapsed < 24*time.Hour {
+		hours := int(elapsed.Hours())
+		return fmt.Sprintf("%dh ago", hours)
+	} else {
+		days := int(elapsed.Hours() / 24)
+		if days == 1 {
+			return "1 day ago"
+		}
+		return fmt.Sprintf("%d days ago", days)
+	}
 }
 
 // executeZoink is the main command handler for the root command
@@ -213,8 +229,8 @@ func executeZoink(cmd *cobra.Command, args []string) {
 	query := strings.Join(args, " ")
 	config := buildConfigFromFlags(cmd)
 
-	// If no query and not interactive, show help
-	if query == "" && !config.Interactive {
+	// If no query and not interactive/list, show help
+	if query == "" && !config.Interactive && !config.ListOnly {
 		cmd.Help()
 		return
 	}
