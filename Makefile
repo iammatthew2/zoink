@@ -89,8 +89,8 @@ help:
 	@echo ""
 	@echo "Development workflow:"
 	@echo "  1. make dev-setup    # Sets up shell integration with local binary"
-	@echo "  2. export PATH=\"\$$(pwd)/bin:\$$PATH\"  # Use local binary in current shell"
-	@echo "  3. source ~/.zshrc   # Restart shell to activate z alias"
+	@echo "  2. source ~/.zshrc   # Activate 'x' alias (uses system binary initially)"
+	@echo "  3. export PATH=\"\$$(pwd)/bin:\$$PATH\"  # Switch to local binary"
 
 # Development setup with shell integration
 dev-setup: build
@@ -99,7 +99,8 @@ dev-setup: build
 	PATH="$(PWD)/bin:$$PATH" ./bin/$(BINARY_NAME) setup --quiet
 	@echo ""
 	@echo "Development setup complete!"
-	@echo "To use the local zoink binary in your current shell, run:"
-	@echo "  export PATH=\"$(PWD)/bin:\$$PATH\""
+	@echo "To activate the 'x' alias, run:"
+	@echo "  source ~/.zshrc (or your shell's config file)"
 	@echo ""
-	@echo "Then restart your shell or run: source ~/.zshrc (or your shell's config)"
+	@echo "Then to use the local zoink binary instead of system binary, run:"
+	@echo "  export PATH=\"$(PWD)/bin:\$$PATH\""

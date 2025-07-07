@@ -230,7 +230,7 @@ func generateShellHook(shellName string) string {
 		return `# Zoink shell integration
 zoink_track() {
     if command -v zoink >/dev/null 2>&1; then
-        zoink --add "$PWD" >/dev/null 2>&1
+        zoink add "$PWD" >/dev/null 2>&1
     fi
 }
 
@@ -270,7 +270,7 @@ zoink_track`
 		return `# Zoink shell integration
 function zoink_track
     if command -v zoink >/dev/null 2>&1
-        zoink --add $PWD >/dev/null 2>&1
+        zoink add $PWD >/dev/null 2>&1
     end
 end
 
