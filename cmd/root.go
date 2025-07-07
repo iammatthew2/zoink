@@ -22,12 +22,12 @@ Zoink tracks the directories you visit and helps you navigate to them quickly
 using intelligent matching based on how often and how recently you've visited them.
 
 Primary usage (via shell alias):
-  z proj                  Navigate to best project match
+  z foo                  Navigate to best project match
   z -i doc                Interactive selection for documents  
   z -l work               List work-related directories
 
 Direct usage:
-  zoink proj              Navigate to best project match
+  zoink find foo         Navigate to best project match
   zoink setup             Setup shell integration
   zoink stats             Show usage statistics`,
 	Args: cobra.ArbitraryArgs,

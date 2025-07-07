@@ -38,7 +38,7 @@ x() {
     if [ $# -eq 0 ]; then
         # No arguments: show interactive selection
         local result
-        result=$(zoink --interactive)
+        result=$(zoink find --interactive)
         [ -n "$result" ] && cd "$result"
     else
         # Check if any argument starts with a dash (flag)
@@ -50,12 +50,12 @@ x() {
         done
         
         if [ "$has_flags" = true ]; then
-            # Has flags: run directly without cd (let zoink handle it)
-            zoink "$@"
+            # Has flags: run find command directly without cd (let zoink handle it)
+            zoink find "$@"
         else
             # No flags: treat as navigation query
             local result
-            result=$(zoink "$@")
+            result=$(zoink find "$@")
             if [ $? -eq 0 ] && [ -n "$result" ] && [ -d "$result" ]; then
                 cd "$result"
             else
@@ -86,7 +86,7 @@ end
 function x
     if test (count $argv) -eq 0
         # No arguments: show interactive selection
-        set result (zoink --interactive)
+        set result (zoink find --interactive)
         if test -n "$result"
             cd "$result"
         end
@@ -101,11 +101,11 @@ function x
         end
         
         if test "$has_flags" = "true"
-            # Has flags: run directly without cd (let zoink handle it)
-            zoink $argv
+            # Has flags: run find command directly without cd (let zoink handle it)
+            zoink find $argv
         else
             # No flags: treat as navigation query
-            set result (zoink $argv)
+            set result (zoink find $argv)
             if test $status -eq 0 -a -n "$result" -a -d "$result"
                 cd "$result"
             else

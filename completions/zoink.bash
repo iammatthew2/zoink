@@ -114,7 +114,7 @@ __zoink_process_completion_results() {
 
         # Do not use quotes around the $completions variable or else newline
         # characters will be kept.
-        for filter in ${completions[*]}; do
+        for filter in "${completions[@]}"; do
             fullFilter+="$filter|"
         done
 
@@ -200,7 +200,7 @@ __zoink_handle_activeHelp() {
 __zoink_reprint_commandLine() {
     # The prompt format is only available from bash 4.4.
     # We test if it is available before using it.
-    if (x=${PS1@P}) 2> /dev/null; then
+    if (: "${PS1@P}") 2> /dev/null; then
         printf "%s%s" "${PS1@P}" "${COMP_LINE[*]}"
     else
         # Can't print the prompt.  Just print the
@@ -218,7 +218,7 @@ __zoink_extract_activeHelp() {
     while IFS='' read -r comp; do
         [[ -z $comp ]] && continue
 
-        if [[ ${comp:0:endIndex} == $activeHelpMarker ]]; then
+        if [[ ${comp:0:endIndex} == "$activeHelpMarker" ]]; then
             comp=${comp:endIndex}
             __zoink_debug "ActiveHelp found: $comp"
             if [[ -n $comp ]]; then
@@ -390,7 +390,7 @@ __zoink_format_comp_descriptions()
 
 __start_zoink()
 {
-    local cur prev words cword split
+    local cur words cword
 
     COMPREPLY=()
 
