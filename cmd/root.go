@@ -14,18 +14,22 @@ var (
 
 // base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "zoink [flags] [query]",
+	Use:   "zoink [query]",
 	Short: "Fast directory navigation with frecency",
 	Long: `Zoink - Navigate directories quickly using frequency and recency.
 
 Zoink tracks the directories you visit and helps you navigate to them quickly
 using intelligent matching based on how often and how recently you've visited them.
 
-Examples:
+Primary usage (via shell alias):
+  z proj                  Navigate to best project match
+  z -i doc                Interactive selection for documents  
+  z -l work               List work-related directories
+
+Direct usage:
   zoink proj              Navigate to best project match
-  zoink -i doc            Interactive selection for documents  
-  zoink -l work           List work-related directories
-  zoink --setup           Setup shell integration`,
+  zoink setup             Setup shell integration
+  zoink stats             Show usage statistics`,
 	Args: cobra.ArbitraryArgs,
 	Run:  executeZoink,
 }
@@ -42,34 +46,16 @@ func init() {
 	// Global flags
 	rootCmd.PersistentFlags().Bool("verbose", false, "verbose output")
 
-	// Navigation flags
-	rootCmd.Flags().BoolP("interactive", "i", false, "Force interactive selection")
+	// Essential navigation flags (keep it simple)
+	rootCmd.Flags().BoolP("interactive", "i", false, "Interactive selection when multiple matches")
 	rootCmd.Flags().BoolP("list", "l", false, "List matches without navigating")
 	rootCmd.Flags().BoolP("echo", "e", false, "Echo path only (for shell integration)")
-	rootCmd.Flags().IntP("nth", "n", 0, "Select nth match directly (1-based)")
 
-	// Matching mode flags
-	rootCmd.Flags().BoolP("rank", "r", false, "Sort by frequency only")
-	rootCmd.Flags().BoolP("recent", "t", false, "Sort by recency only")
-	rootCmd.Flags().BoolP("exact", "x", false, "Exact matching only (no fuzzy)")
-	rootCmd.Flags().BoolP("current", "c", false, "Search current directory children only")
+	// Quick access flags for common patterns
+	rootCmd.Flags().BoolP("recent", "t", false, "Prefer recent directories")
+	rootCmd.Flags().BoolP("frequent", "f", false, "Prefer frequently used directories")
 
-	// Management flags
-	rootCmd.Flags().Bool("setup", false, "Setup shell integration")
-	rootCmd.Flags().Bool("clean", false, "Remove non-existent directories")
-	rootCmd.Flags().Bool("stats", false, "Show usage statistics")
-	rootCmd.Flags().String("add", "", "Manually add directory to database")
-	rootCmd.Flags().String("remove", "", "Remove directory from database")
-
-	// Output control flags (can override config defaults)
-	rootCmd.Flags().Int("max-results", 10, "Maximum number of results to show")
-	rootCmd.Flags().Float64("threshold", 0.8, "Auto-select confidence threshold (0.0-1.0)")
-
-	// Setup modifiers
-	rootCmd.Flags().Bool("quiet", false, "Non-interactive mode (use with --setup)")
-	rootCmd.Flags().Bool("print-only", false, "Print shell code without installing (use with --setup)")
-
-	// Version flag
+	// Version flag (keep for backwards compatibility)
 	rootCmd.Flags().Bool("version", false, "Show version information")
 }
 

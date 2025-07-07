@@ -12,51 +12,42 @@ type NavigationConfig struct {
 	Interactive bool
 	ListOnly    bool
 	EchoOnly    bool
-	RankOnly    bool
-	RecentOnly  bool
-	ExactMatch  bool
-	CurrentOnly bool
+	Recent      bool
+	Frequent    bool
 	MaxResults  int
 	Threshold   float64
-	NthMatch    int
 }
 
 // buildConfigFromFlags extracts navigation configuration from command flags with optional config overrides
 func buildConfigFromFlags(cmd *cobra.Command) *NavigationConfig {
 	cfg := GetConfig()
 
-	// Start with flag values (which include Cobra's defaults)
+	// Get flag values
 	interactive, _ := cmd.Flags().GetBool("interactive")
 	listOnly, _ := cmd.Flags().GetBool("list")
 	echoOnly, _ := cmd.Flags().GetBool("echo")
-	rankOnly, _ := cmd.Flags().GetBool("rank")
-	recentOnly, _ := cmd.Flags().GetBool("recent")
-	exactMatch, _ := cmd.Flags().GetBool("exact")
-	currentOnly, _ := cmd.Flags().GetBool("current")
-	nthMatch, _ := cmd.Flags().GetInt("nth")
-	maxResults, _ := cmd.Flags().GetInt("max-results")
-	threshold, _ := cmd.Flags().GetFloat64("threshold")
+	recent, _ := cmd.Flags().GetBool("recent")
+	frequent, _ := cmd.Flags().GetBool("frequent")
 
-	// Override with config ONLY if user customized it AND flag wasn't explicitly set
-	if !cmd.Flags().Changed("max-results") && cfg.MaxResults > 0 {
-		maxResults = cfg.MaxResults
+	// Use config defaults for advanced settings
+	maxResults := cfg.MaxResults
+	if maxResults <= 0 {
+		maxResults = 10 // sensible default
 	}
 
-	if !cmd.Flags().Changed("threshold") && cfg.Threshold > 0 {
-		threshold = cfg.Threshold
+	threshold := cfg.Threshold
+	if threshold <= 0 {
+		threshold = 0.8 // sensible default
 	}
 
 	return &NavigationConfig{
 		Interactive: interactive,
 		ListOnly:    listOnly,
 		EchoOnly:    echoOnly,
-		RankOnly:    rankOnly,
-		RecentOnly:  recentOnly,
-		ExactMatch:  exactMatch,
-		CurrentOnly: currentOnly,
+		Recent:      recent,
+		Frequent:    frequent,
 		MaxResults:  maxResults,
 		Threshold:   threshold,
-		NthMatch:    nthMatch,
 	}
 }
 
@@ -66,39 +57,11 @@ func handleNavigation(query string, config *NavigationConfig) {
 	fmt.Printf("Config: %+v\n", config)
 }
 
-// executeZoink is the main command handler
+// executeZoink is the main command handler for the root command
 func executeZoink(cmd *cobra.Command, args []string) {
-	// Handle version flag
+	// Handle version flag (for backwards compatibility)
 	if version, _ := cmd.Flags().GetBool("version"); version {
 		handleVersion()
-		return
-	}
-
-	// Handle setup command
-	if setup, _ := cmd.Flags().GetBool("setup"); setup {
-		handleSetup(cmd)
-		return
-	}
-
-	// Handle management commands
-	if stats, _ := cmd.Flags().GetBool("stats"); stats {
-		handleStats()
-		return
-	}
-
-	if clean, _ := cmd.Flags().GetBool("clean"); clean {
-		handleClean()
-		return
-	}
-
-	// Handle manual directory operations
-	if addDir, _ := cmd.Flags().GetString("add"); addDir != "" {
-		handleAdd(addDir)
-		return
-	}
-
-	if removeDir, _ := cmd.Flags().GetString("remove"); removeDir != "" {
-		handleRemove(removeDir)
 		return
 	}
 
@@ -106,6 +69,7 @@ func executeZoink(cmd *cobra.Command, args []string) {
 	query := strings.Join(args, " ")
 	config := buildConfigFromFlags(cmd)
 
+	// If no query and not interactive, show help
 	if query == "" && !config.Interactive {
 		cmd.Help()
 		return

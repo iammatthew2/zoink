@@ -13,6 +13,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// setupCmd represents the setup command
+var setupCmd = &cobra.Command{
+	Use:   "setup",
+	Short: "Setup shell integration",
+	Long: `Setup shell integration for zoink.
+
+This command will detect your shell and install the necessary hooks
+to enable the 'z' command for directory navigation.
+
+Examples:
+  zoink setup                    Interactive setup
+  zoink setup --quiet            Non-interactive setup
+  zoink setup --print-only       Show shell code without installing`,
+	Run: handleSetupCommand,
+}
+
+func init() {
+	rootCmd.AddCommand(setupCmd)
+
+	setupCmd.Flags().Bool("quiet", false, "Non-interactive mode")
+	setupCmd.Flags().Bool("print-only", false, "Print shell code without installing")
+	setupCmd.Flags().String("shell", "", "Target shell (bash, zsh, fish)")
+	setupCmd.Flags().String("alias", "", "Alias name (default: z, or x for development)")
+}
+
 // ShellInfo holds information about a detected shell
 type ShellInfo struct {
 	Name       string
@@ -20,8 +45,8 @@ type ShellInfo struct {
 	Binary     string
 }
 
-// handleSetup manages shell integration setup
-func handleSetup(cmd *cobra.Command) {
+// handleSetupCommand manages shell integration setup
+func handleSetupCommand(cmd *cobra.Command, args []string) {
 	quiet, _ := cmd.Flags().GetBool("quiet")
 	printOnly, _ := cmd.Flags().GetBool("print-only")
 
