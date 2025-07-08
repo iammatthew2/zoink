@@ -1,139 +1,93 @@
 # Zoink
 
-**Zoink** is a fast, cross-shell tool for directory navigation, inspired by z.sh/fasd with fuzzy/frecency ranking, directory bookmarking and shell snippet management/execution
+Zoink is a fast, cross-shell tool for directory navigation, directory bookmarking and shell snippet management/execution. It is inspired by [z.sh](https://github.com/rupa/z), [fasd](https://github.com/clvv/fasd), and [autojump](https://github.com/wting/autojump), leveraging a similar algorithm for fuzzy/frecency ranking for directory lookup.
+
+`zoink` is an executable that can be called for configuration and advanced usages. The alias (`x`) is the daily driver
+
+## Quick start
+
+Install via [Homebrew](https://brew.sh/)
+
+`brew install iammatthew2/tap/zoink` 
+
+Shell integration is automatically configured, giving you access to the `x` alias
+
+Navigate around your directories (cd here and there) then use the zoink alias to navigate to locations you have already visited
+
+```bash
+x here
+x there
+```
+
+## Install via Go
+```bash
+go install github.com/iammatthew2/zoink@latest
+zoink setup --quiet  # Setup shell integration
+
+# For completions, add one of these to your shell config:
+source <(zoink completion zsh)   # for zsh
+source <(zoink completion bash)  # for bash
+zoink completion fish | source   # for fish
+```
 
 ## Usage
+
+### The basics
+```bash
+# Use the zoink alias (x) to navigate
+x foo
+```
+
+### Advanced
 ```bash
 # Setup and management
 zoink setup [--quiet] [--print-only]  # Interactive setup
-zoink stats                           # Show usage statistics
+zoink stats                           # Show usage statistics and DB info
 zoink clean                           # Remove non-existent directories
 zoink add /path/to/dir                # Manually add directory
 zoink remove /path/to/dir             # Remove directory
 
-# Navigation (working)
-x foo                                 # Navigate to best match for "foo" (shell alias)
-x -i docs                             # Interactive selection (coming soon)
-x -l work                             # List all matches without navigating
-zoink --echo project                  # Print best match path only (direct command)
-```
-
-## Shell Integration
-- **Automatic shell detection** (bash, zsh, fish)
-- **XDG-compliant configuration** placement  
-- **Safe shell config editing** with backup protection
-- **Development-friendly** alias switching (`z` vs `x`)
-- **Automatic directory tracking** via shell hooks
-
-## Development Workflow
-```bash
-make build                     # Build the binary
-make dev-setup                 # Setup shell integration with local binary
-make completions               # Generate shell completions
-make clean                     # Clean build artifacts
-```
-
-## Data storage info
-
-Zoink uses a binary database stored in platform-specific. The location may vary, but should look like:
-- **macOS**: `~/Library/Application Support/zoink/zoink.db`
-- **Linux**: `~/.config/zoink/zoink.db` 
-- **Windows**: `%APPDATA%\zoink\zoink.db`
-
-The database:
-- **Persists across rebuilds** and only changes when directories are visited
-- **Thread-safe** with atomic saves to prevent corruption
-- **Frecency scoring** that balances frequency and recency of visits
-- **Manual cleanup** of non-existent directories via `zoink clean`
-
-## Roadmap
-
-### Completed 
-- [x] **Binary database** for fast directory storage
-- [x] **Frecency algorithm** (frequency + recency scoring)
-- [x] **Directory tracking** via shell hooks
-- [x] **Basic navigation** with automatic path output
-- [x] **Management commands** (stats, clean, add, remove)
-- [x] **Cross-platform config** directories
-- [x] **Shell integration** setup
-
-### Next Steps
-- [ ] **Fuzzy matching** for directory queries (currently substring matching)
-- [ ] **Interactive selection** using survey/v2
-- [ ] **Import from existing tools** (z.sh, fasd, autojump)
-- [ ] **Advanced ranking** options (recent/frequent flags)
-
-### Future Enhancements
-- [ ] **Fuzzy completion** for directory shortcuts
-- [ ] **Performance optimization** for large databases
-- [ ] **Advanced configuration** options
-- [ ] **Package distribution** (Homebrew, etc.)
-- [ ] **Shell completion** for directory paths
-
-## Architecture
-
-### Design Principles
-- **Fast**: Minimal startup time, efficient database operations
-- **Modern**: Clean UX, intuitive commands, modern Go practices
-- **Cross-shell**: Seamless integration with bash, zsh, fish
-- **Modular**: Clean separation of concerns, testable components
-
-### Stack
-- **Go**: Core application with Cobra CLI framework
-- **Survey/v2**: Interactive UI components
-- **JSON**: Minimal configuration format
-- **Binary DB**: Fast directory storage (planned)
-- **Shell Scripts**: Integration hooks for each shell
-
-## Usage Examples
-
-```bash
-# After visiting directories, zoink learns your patterns
-cd ~/projects/my-app
-cd ~/Documents/work  
-cd ~/dev/zoink
+# Navigation
+# After visiting directories, zoink remembers remembers where you went
+cd ~/foo/my-app
+cd ~/bar/someThing
+cd ~/baz/somePlace
 
 # Quick navigation with frecency ranking (using shell alias)
-x proj              # → ~/projects/my-app (most frequent/recent match)
-x doc               # → ~/Documents/work
-x zoink             # → ~/dev/zoink
-
-# List and inspect without navigating
-x -l                # Lists all tracked directories with visit counts
-zoink --echo proj   # Prints best match path only
-
-# Management (use full command name)
-zoink stats         # Show usage statistics and database location
-zoink clean         # Remove deleted directories  
-zoink add ~/new/dir # Manually add a directory
-zoink remove ~/old  # Remove a directory from tracking
+x foo                      # → ~/foo/my-app (most frequent/recent match)
+x bar                      # → ~/bar/someThing
+x foo --interactive        # Interactive selection (coming soon)
+x foo --list               # Lists all tracked directories with visit counts
+x --echo foo               # Prints best match path only
 ```
 
 ## Development
 
-### Building
 ```bash
-git clone <repository>
+git clone github.com/iammatthew2/zoink
 cd zoink
-make deps       # Install dependencies
-make build      # Build binary
+make build
+export PATH="$(pwd)/bin:$PATH"
+zoink setup
+
+# Then update your shell for the current instance.
+# Do one of:
+1. source ~/.zshrc
+2. source ~/.config/fish/config.fish
+3. source ~/.bashrc 
 ```
 
-### Testing in Development
-```bash
-make dev-setup                        # Setup with local binary
-export PATH="$(pwd)/bin:$PATH"        # Use local binary  
-source ~/.zshrc                       # Activate shell integration
+### Architecture/Design Principles
+- **Fast**: Minimal startup time, efficient database operations
+- **Modern**: Clean UX, intuitive commands
+- **Cross-shell**: Seamless integration with bash, zsh, fish
+- **Modular**: Clean separation of concerns, testable components
 
-# Test functionality
-zoink stats                           # View database statistics with location
-x -l                                  # List all tracked directories using shell alias
-zoink --echo some_dir                # Test path resolution
-```
-
-## Inspiration
-
-Zoink is inspired by the following tools:
-- **[z.sh](https://github.com/rupa/z)** - Simple frecency-based navigation
-- **[fasd](https://github.com/clvv/fasd)** - Fast access to files and directories
-- **[autojump](https://github.com/wting/autojump)** - Directory jumping with learning
+### Roadmap
+- [ ] **Fuzzy matching** for directory queries (currently substring matching)
+- [ ] **Package distribution** (Homebrew, etc.)
+- [ ] **Interactive selection** using survey/v2
+- [ ] **Import from existing tools** (z.sh, fasd, autojump)
+- [ ] **Advanced ranking** options (recent/frequent flags)
+- [ ] **Performance optimization** for large databases
+- [ ] **Advanced configuration** options

@@ -1,5 +1,8 @@
 /bin/
 /dist/
+/completions/
 /.vscode/
 .DS_Store
 notes.md
+coverage.out
+coverage.html
