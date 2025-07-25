@@ -4,9 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -17,6 +19,14 @@ type DirectoryEntry struct {
 	VisitCount   uint32
 	LastVisited  int64 // Unix timestamp
 	FirstVisited int64 // Unix timestamp
+}
+
+// MatchResult represents a search result with both fuzzy and frecency scores
+type MatchResult struct {
+	Entry         *DirectoryEntry
+	FuzzyScore    int
+	FrecencyScore float64
+	CombinedScore float64
 }
 
 // Database manages the binary database of directory entries
@@ -76,31 +86,75 @@ func (db *Database) AddVisit(path string) error {
 	return nil
 }
 
-// Query searches for directories matching the given query
+// Query searches for directories matching the given query using fuzzy matching combined with frecency
 func (db *Database) Query(query string, maxResults int) ([]*DirectoryEntry, error) {
 	db.mutex.RLock()
 	defer db.mutex.RUnlock()
 
-	var matches []*DirectoryEntry
+	if query == "" {
+		// No query - return all entries sorted by frecency
+		var entries []*DirectoryEntry
+		for _, entry := range db.entries {
+			entries = append(entries, entry)
+		}
 
-	// Simple substring matching for now (will add fuzzy matching later)
+		// Sort by frecency score only
+		sort.Slice(entries, func(i, j int) bool {
+			return calculateFrecency(entries[i]) > calculateFrecency(entries[j])
+		})
+
+		// Limit results
+		if len(entries) > maxResults {
+			entries = entries[:maxResults]
+		}
+
+		return entries, nil
+	}
+
+	var matches []MatchResult
+
+	// Fuzzy match against all entries
 	for _, entry := range db.entries {
-		if contains(entry.Path, query) {
-			matches = append(matches, entry)
+		fuzzyScore := fuzzyMatch(entry.Path, query)
+		if fuzzyScore > 0 {
+			frecencyScore := calculateFrecency(entry)
+
+			// Combine fuzzy and frecency scores
+			// Normalize fuzzy score to 0-1 range (assuming max score around 1000)
+			normalizedFuzzy := float64(fuzzyScore) / 1000.0
+			if normalizedFuzzy > 1.0 {
+				normalizedFuzzy = 1.0
+			}
+
+			// Combine with weights: 60% fuzzy matching, 40% frecency
+			combinedScore := (normalizedFuzzy * 0.6) + (frecencyScore * 0.4)
+
+			matches = append(matches, MatchResult{
+				Entry:         entry,
+				FuzzyScore:    fuzzyScore,
+				FrecencyScore: frecencyScore,
+				CombinedScore: combinedScore,
+			})
 		}
 	}
 
-	// Sort by frecency score (frequency + recency)
+	// Sort by combined score
 	sort.Slice(matches, func(i, j int) bool {
-		return calculateFrecency(matches[i]) > calculateFrecency(matches[j])
+		return matches[i].CombinedScore > matches[j].CombinedScore
 	})
 
-	// Limit results
-	if len(matches) > maxResults {
-		matches = matches[:maxResults]
+	// Convert to DirectoryEntry slice
+	var entries []*DirectoryEntry
+	for _, match := range matches {
+		entries = append(entries, match.Entry)
 	}
 
-	return matches, nil
+	// Limit results
+	if len(entries) > maxResults {
+		entries = entries[:maxResults]
+	}
+
+	return entries, nil
 }
 
 // GetAll returns all directory entries
@@ -133,7 +187,7 @@ func (db *Database) CleanupMissing() (int, error) {
 	defer db.mutex.Unlock()
 
 	removed := 0
-	for path, _ := range db.entries {
+	for path := range db.entries {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			delete(db.entries, path)
 			removed++
@@ -319,11 +373,9 @@ func calculateFrecency(entry *DirectoryEntry) float64 {
 	recencyFactor := 1.0
 	if ageInDays > 0 {
 		halfLife := 30.0 // days
-		// Correct exponential decay formula: factor = 0.5^(age/halfLife)
-		recencyFactor = 1.0
-		for i := 0.0; i < ageInDays/halfLife; i += 1.0 {
-			recencyFactor *= 0.5
-		}
+		// Use proper exponential decay: e^(-ln(2) * age / halfLife)
+		decayRate := math.Log(2) / halfLife
+		recencyFactor = math.Exp(-decayRate * ageInDays)
 		if recencyFactor < 0.01 {
 			recencyFactor = 0.01 // Minimum factor
 		}
@@ -332,43 +384,134 @@ func calculateFrecency(entry *DirectoryEntry) float64 {
 	return float64(entry.VisitCount) * recencyFactor
 }
 
-// contains performs case-insensitive substring search
-func contains(path, query string) bool {
-	// Simple implementation - will be replaced with fuzzy matching
-	pathLower := filepath.Base(path) // Just check basename for now
-	queryLower := query
-
-	// Convert to lowercase for case-insensitive search
-	for i := 0; i < len(pathLower); i++ {
-		if pathLower[i] >= 'A' && pathLower[i] <= 'Z' {
-			pathLower = pathLower[:i] + string(pathLower[i]+32) + pathLower[i+1:]
-		}
-	}
-	for i := 0; i < len(queryLower); i++ {
-		if queryLower[i] >= 'A' && queryLower[i] <= 'Z' {
-			queryLower = queryLower[:i] + string(queryLower[i]+32) + queryLower[i+1:]
-		}
+// fuzzyMatch implements an fzf-inspired fuzzy matching algorithm
+func fuzzyMatch(text, pattern string) int {
+	if len(pattern) == 0 {
+		return 0
 	}
 
-	return len(query) == 0 || stringContains(pathLower, queryLower)
+	// Use only the basename for matching (like most directory jumpers)
+	text = filepath.Base(text)
+
+	// Convert to lowercase for case-insensitive matching
+	textLower := strings.ToLower(text)
+	patternLower := strings.ToLower(pattern)
+
+	// Check if we can match all pattern characters
+	if !canMatch(textLower, patternLower) {
+		return 0
+	}
+
+	// Calculate detailed score
+	return calculateFuzzyScore(text, textLower, pattern, patternLower)
 }
 
-// stringContains checks if s contains substr
-func stringContains(s, substr string) bool {
-	if len(substr) > len(s) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		match := true
-		for j := 0; j < len(substr); j++ {
-			if s[i+j] != substr[j] {
-				match = false
+// canMatch checks if all characters in pattern exist in text in order
+func canMatch(text, pattern string) bool {
+	textIdx := 0
+	for _, patternChar := range pattern {
+		found := false
+		for textIdx < len(text) {
+			if rune(text[textIdx]) == patternChar {
+				found = true
+				textIdx++
 				break
 			}
+			textIdx++
 		}
-		if match {
-			return true
+		if !found {
+			return false
 		}
 	}
-	return false
+	return true
+}
+
+// calculateFuzzyScore computes a detailed fuzzy match score
+func calculateFuzzyScore(text, textLower, pattern, patternLower string) int {
+	score := 0
+	patternIdx := 0
+	textIdx := 0
+	consecutiveCount := 0
+
+	// Bonus constants (similar to fzf)
+	const (
+		scoreMatch            = 16
+		scoreCaseMatch        = 1
+		scoreConsecutive      = 32
+		scoreWordBoundary     = 8
+		scoreFirstCharBonus   = 32
+		penaltyLeading        = -2
+		penaltyMaxLeading     = -12
+		penaltyNonConsecutive = -1
+	)
+
+	// Track leading penalty
+	leadingPenalty := 0
+
+	for patternIdx < len(pattern) && textIdx < len(text) {
+		patternChar := rune(patternLower[patternIdx])
+		textChar := rune(textLower[textIdx])
+
+		if patternChar == textChar {
+			// Base match score
+			currentScore := scoreMatch
+
+			// Case match bonus
+			if rune(pattern[patternIdx]) == rune(text[textIdx]) {
+				currentScore += scoreCaseMatch
+			}
+
+			// First character bonus
+			if patternIdx == 0 {
+				currentScore += scoreFirstCharBonus
+			}
+
+			// Consecutive character bonus
+			if consecutiveCount > 0 {
+				currentScore += scoreConsecutive
+			}
+			consecutiveCount++
+
+			// Word boundary bonus (after slash, dash, underscore, space, or at start)
+			if textIdx == 0 || isWordBoundary(rune(text[textIdx-1])) {
+				currentScore += scoreWordBoundary
+			}
+
+			score += currentScore
+			patternIdx++
+			leadingPenalty = 0 // Reset leading penalty after first match
+		} else {
+			// Apply leading penalty only before first match
+			if patternIdx == 0 && leadingPenalty > penaltyMaxLeading {
+				leadingPenalty += penaltyLeading
+			}
+
+			// Non-consecutive penalty
+			if consecutiveCount > 0 {
+				score += penaltyNonConsecutive
+			}
+			consecutiveCount = 0
+		}
+
+		textIdx++
+	}
+
+	// Ensure all pattern characters were matched
+	if patternIdx < len(pattern) {
+		return 0
+	}
+
+	// Apply leading penalty
+	score += leadingPenalty
+
+	// Bonus for shorter matches (prefer more specific matches)
+	lengthBonus := int(float64(len(pattern)) / float64(len(text)) * 50)
+	score += lengthBonus
+
+	return score
+}
+
+// isWordBoundary checks if a character is a word boundary
+func isWordBoundary(char rune) bool {
+	return char == '/' || char == '-' || char == '_' || char == ' ' || char == '.'
 }

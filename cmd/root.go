@@ -23,13 +23,13 @@ using intelligent matching based on how often and how recently you've visited th
 
 Primary usage (via shell alias):
   z foo                  Navigate to best project match
-  z -i doc                Interactive selection for documents  
-  z -l work               List work-related directories
+  z -i doc               Interactive selection for documents  
+  z -l work              List work-related directories
 
 Direct usage:
   zoink find foo         Navigate to best project match
-  zoink setup             Setup shell integration
-  zoink stats             Show usage statistics`,
+  zoink setup            Setup shell integration
+  zoink stats            Show usage statistics`,
 	Args: cobra.ArbitraryArgs,
 	Run:  executeZoink,
 }
@@ -43,20 +43,14 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Global flags
-	rootCmd.PersistentFlags().Bool("verbose", false, "verbose output")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
-	// Essential navigation flags (keep it simple)
+	rootCmd.Flags().BoolP("version", "V", false, "Show version information")
 	rootCmd.Flags().BoolP("interactive", "i", false, "Interactive selection when multiple matches")
 	rootCmd.Flags().BoolP("list", "l", false, "List matches without navigating")
 	rootCmd.Flags().BoolP("echo", "e", false, "Echo path only (for shell integration)")
-
-	// Quick access flags for common patterns
 	rootCmd.Flags().BoolP("recent", "t", false, "Prefer recent directories")
 	rootCmd.Flags().BoolP("frequent", "f", false, "Prefer frequently used directories")
-
-	// Version flag (keep for backwards compatibility)
-	rootCmd.Flags().Bool("version", false, "Show version information")
 }
 
 // initConfig loads the configuration

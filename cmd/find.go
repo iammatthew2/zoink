@@ -16,9 +16,9 @@ It provides the core directory matching and selection functionality.
 For general help and usage information, run: zoink --help
 
 Examples (via shell alias):
-  x foo                  Navigate to best project match
-  x -i foo               Interactive selection for foo-related documents
-  x -l foo               List foo-related directories`,
+  z foo                  Navigate to best project match
+  z -i foo               Interactive selection for foo-related documents
+  z -l foo               List foo-related directories`,
 	Args: cobra.ArbitraryArgs,
 	Run:  executeZoink, // Reuse the same navigation logic
 }

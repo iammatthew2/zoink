@@ -2,7 +2,7 @@
 
 Zoink is a fast, cross-shell tool for directory navigation, directory bookmarking and shell snippet management/execution. It is inspired by [z.sh](https://github.com/rupa/z), [fasd](https://github.com/clvv/fasd), and [autojump](https://github.com/wting/autojump), leveraging a similar algorithm for fuzzy/frecency ranking for directory lookup.
 
-`zoink` is an executable that can be called for configuration and advanced usages. The alias (`x`) is the daily driver
+`zoink` is an executable that can be called for setup and configuration. The alias `z` is the daily driver.
 
 ## Quick start
 
@@ -10,13 +10,13 @@ Install via [Homebrew](https://brew.sh/)
 
 `brew install iammatthew2/tap/zoink` 
 
-Shell integration is automatically configured, giving you access to the `x` alias
+Shell integration is automatically configured, giving you access to the `z` alias
 
 Navigate around your directories (cd here and there) then use the zoink alias to navigate to locations you have already visited
 
 ```bash
-x here
-x there
+z here
+z there
 ```
 
 ## Install via Go
@@ -34,8 +34,8 @@ zoink completion fish | source   # for fish
 
 ### The basics
 ```bash
-# Use the zoink alias (x) to navigate
-x foo
+# Use the zoink alias (z) to navigate
+z foo
 ```
 
 ### Advanced
@@ -54,11 +54,11 @@ cd ~/bar/someThing
 cd ~/baz/somePlace
 
 # Quick navigation with frecency ranking (using shell alias)
-x foo                      # → ~/foo/my-app (most frequent/recent match)
-x bar                      # → ~/bar/someThing
-x foo --interactive        # Interactive selection (coming soon)
-x foo --list               # Lists all tracked directories with visit counts
-x --echo foo               # Prints best match path only
+z foo                      # → ~/foo/my-app (most frequent/recent match)
+z bar                      # → ~/bar/someThing
+z foo --interactive        # Interactive selection (coming soon)
+z foo --list               # Lists all tracked directories with visit counts
+z --echo foo               # Prints best match path only
 ```
 
 ## Development
@@ -84,7 +84,7 @@ zoink setup
 - **Modular**: Clean separation of concerns, testable components
 
 ### Roadmap
-- [ ] **Fuzzy matching** for directory queries (currently substring matching)
+- [x] **Fuzzy matching** for directory queries (fzf-inspired algorithm)
 - [ ] **Package distribution** (Homebrew, etc.)
 - [ ] **Interactive selection** using survey/v2
 - [ ] **Import from existing tools** (z.sh, fasd, autojump)

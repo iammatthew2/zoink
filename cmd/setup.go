@@ -36,7 +36,6 @@ func init() {
 	setupCmd.Flags().Bool("quiet", false, "Non-interactive mode")
 	setupCmd.Flags().Bool("print-only", false, "Print shell code without installing")
 	setupCmd.Flags().String("shell", "", "Target shell (bash, zsh, fish)")
-	setupCmd.Flags().String("alias", "", "Alias name (default: z, or x for development)")
 }
 
 // ShellInfo holds information about a detected shell
