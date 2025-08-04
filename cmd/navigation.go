@@ -217,6 +217,35 @@ func formatLastVisit(timestamp int64) string {
 	}
 }
 
+// handleEmptyQuery handles the case when no query is provided from shell integration
+func handleEmptyQuery(config *NavigationConfig) {
+	// Get database config
+	cfg := GetConfig()
+	dbConfig := database.DatabaseConfig{Path: cfg.DatabasePath}
+
+	// Check if database exists
+	if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
+		// No database yet - nothing to do
+		return
+	}
+
+	// Open database
+	db, err := database.New(dbConfig)
+	if err != nil {
+		return // Silently fail for shell integration
+	}
+	defer db.Close()
+
+	// Get all entries and return the best one (most frecent)
+	entries, err := db.Query("", 1) // Get top 1 result with empty query
+	if err != nil || len(entries) == 0 {
+		return // Silently fail for shell integration
+	}
+
+	// Output the best directory
+	fmt.Print(entries[0].Path) // No newline for shell integration
+}
+
 // executeZoink is the main command handler for the root command
 func executeZoink(cmd *cobra.Command, args []string) {
 	// Handle version flag (for backwards compatibility)
@@ -229,9 +258,9 @@ func executeZoink(cmd *cobra.Command, args []string) {
 	query := strings.Join(args, " ")
 	config := buildConfigFromFlags(cmd)
 
-	// If no query and not interactive/list, show help
+	// Handle empty query - return most frecent directory for shell integration
 	if query == "" && !config.Interactive && !config.ListOnly {
-		cmd.Help()
+		handleEmptyQuery(config)
 		return
 	}
 

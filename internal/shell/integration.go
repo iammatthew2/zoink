@@ -36,10 +36,10 @@ popd() {
 # Main z command for navigation
 z() {
     if [ $# -eq 0 ]; then
-        # No arguments: show interactive selection
+        # No arguments: let zoink handle the empty case
         local result
-        result=$(zoink find --interactive)
-        [ -n "$result" ] && cd "$result"
+        result=$(zoink)
+        [ -n "$result" ] && [ -d "$result" ] && cd "$result"
     else
         # Check if any argument starts with a dash (flag)
         local has_flags=false
@@ -85,9 +85,9 @@ end
 # Main z command for navigation
 function z
     if test (count $argv) -eq 0
-        # No arguments: show interactive selection
-        set result (zoink find --interactive)
-        if test -n "$result"
+        # No arguments: let zoink handle the empty case
+        set result (zoink)
+        if test -n "$result" -a -d "$result"
             cd "$result"
         end
     else
