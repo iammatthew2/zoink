@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/iammatthew2/zoink/internal/shell"
+	shellpkg "github.com/iammatthew2/zoink/internal/shell"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +44,7 @@ type ShellInfo struct {
 	Binary     string
 }
 
-// handleSetupCommand manages shell integration setup
+// handleSetupCommand manages shell integration
 func handleSetupCommand(cmd *cobra.Command, args []string) {
 	quiet, _ := cmd.Flags().GetBool("quiet")
 	printOnly, _ := cmd.Flags().GetBool("print-only")
@@ -56,19 +56,16 @@ func handleSetupCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Handle print-only mode
 	if printOnly {
 		handlePrintOnly(shells)
 		return
 	}
 
-	// Handle quiet (non-interactive) mode
 	if quiet {
 		handleQuietSetup(shells)
 		return
 	}
 
-	// Interactive setup
 	handleInteractiveSetup(shells)
 }
 
@@ -81,6 +78,7 @@ func detectShells() []ShellInfo {
 	if bashPath, err := exec.LookPath("bash"); err == nil {
 		configFile := filepath.Join(homeDir, ".bashrc")
 		if runtime.GOOS == "darwin" {
+			// big assumption here
 			// macOS uses .bash_profile by default
 			if _, err := os.Stat(filepath.Join(homeDir, ".bash_profile")); err == nil {
 				configFile = filepath.Join(homeDir, ".bash_profile")
@@ -166,26 +164,16 @@ func handleQuietSetup(shells []ShellInfo) {
 	}
 
 	// Install for the detected shell
-	if err := installShellHook(*targetShell); err != nil {
-		errMsg := err.Error()
-		if strings.HasPrefix(errMsg, "ALREADY_INSTALLED:") {
-			configFile := strings.TrimPrefix(errMsg, "ALREADY_INSTALLED:")
-			fmt.Printf("Zoink integration already configured in %s\n", configFile)
-			return
-		} else if strings.HasPrefix(errMsg, "UPDATED:") {
-			fmt.Printf("Updated shell integration file for %s\n", targetShell.Name)
-			return
-		} else if strings.HasPrefix(errMsg, "CREATED:") {
-			fmt.Printf("Created shell integration file for %s\n", targetShell.Name)
-			return
-		}
-		fmt.Fprintf(os.Stderr, "Error installing shell hook: %v\n", err)
+	success, showAdditionalInfo := installAndReportShellHook(*targetShell, true)
+	if !success {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Zoink shell integration installed for %s\n", targetShell.Name)
-	fmt.Printf("Config file: %s\n", targetShell.ConfigFile)
-	fmt.Printf("Please restart your shell or run: source %s\n", targetShell.ConfigFile)
+	// Only show additional success details for completely new installations
+	if showAdditionalInfo {
+		fmt.Printf("Config file: %s\n", targetShell.ConfigFile)
+		fmt.Printf("Please restart your shell or run: source %s\n", targetShell.ConfigFile)
+	}
 }
 
 // handleInteractiveSetup provides interactive shell selection and installation
@@ -221,37 +209,35 @@ func handleInteractiveSetup(shells []ShellInfo) {
 	for _, idx := range selected {
 		shell := shells[idx]
 		fmt.Printf("\nInstalling Zoink integration for %s...\n", shell.Name)
-
-		if err := installShellHook(shell); err != nil {
-			errMsg := err.Error()
-			if strings.HasPrefix(errMsg, "ALREADY_INSTALLED:") {
-				configFile := strings.TrimPrefix(errMsg, "ALREADY_INSTALLED:")
-				fmt.Printf("Zoink integration already configured in %s\n", filepath.Base(configFile))
-				continue
-			} else if strings.HasPrefix(errMsg, "UPDATED:") {
-				fmt.Printf("Updated shell integration file for %s\n", shell.Name)
-				continue
-			} else if strings.HasPrefix(errMsg, "CREATED:") {
-				fmt.Printf("Created shell integration file for %s\n", shell.Name)
-				continue
-			}
-			fmt.Fprintf(os.Stderr, "Error installing %s hook: %v\n", shell.Name, err)
-			continue
-		}
-
-		fmt.Printf("Successfully configured %s\n", shell.Name)
+		installAndReportShellHook(shell, false)
 	}
 
 	fmt.Println("\nSetup complete!")
 	fmt.Println("Please restart your shell(s) or source the config files to activate Zoink.")
 }
 
-// generateShellHook creates the shell-specific integration code
-func generateShellHook(shellName string) string {
-	return shell.GenerateHook(shellName)
+// Installs shell hook and handles all messaging
+// Returns (success, shouldShowAdditionalInfo)
+func installAndReportShellHook(shell ShellInfo, quiet bool) (bool, bool) {
+	alreadyInstalled := isHookInstalled(shell.ConfigFile, "# Zoink shell integration")
+
+	if err := installShellHook(shell); err != nil {
+		if quiet {
+			fmt.Fprintf(os.Stderr, "Error installing shell hook: %v\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "Error installing %s hook: %v\n", shell.Name, err)
+		}
+		return false, false
+	}
+
+	// Success - simple message for all cases
+	fmt.Printf("Installed (or updated) shell integration for %s\n", shell.Name)
+
+	// Only show additional info for completely new installations
+	return true, !alreadyInstalled
 }
 
-// installShellHook creates shell integration files and adds source line to user's config
+// Creates shell integration files and adds source line to user's config
 func installShellHook(shell ShellInfo) error {
 	// Get zoink config directory
 	configDir, err := getZoinkConfigDir()
@@ -266,28 +252,20 @@ func installShellHook(shell ShellInfo) error {
 	}
 
 	shellFile := filepath.Join(shellDir, getShellFileName(shell.Name))
-	hookCode := generateShellHook(shell.Name)
+	hookCode := shellpkg.GenerateHook(shell.Name)
 
 	// Write/overwrite the shell integration file
 	if err := os.WriteFile(shellFile, []byte(hookCode), 0644); err != nil {
 		return fmt.Errorf("failed to write shell integration file: %v", err)
 	}
 
-	// Add source line to user's shell config
+	// Add source line to user's shell config if not already present
 	marker := "# Zoink shell integration"
 	sourceLine := generateSourceLine(shell.Name, shellFile)
 
-	fileExists := false
-	if _, err := os.Stat(shellFile); err == nil {
-		fileExists = true
-	}
-
+	// If already installed, we're done (file was already updated above)
 	if isHookInstalled(shell.ConfigFile, marker) {
-		if fileExists {
-			return fmt.Errorf("UPDATED:%s", shell.ConfigFile)
-		} else {
-			return fmt.Errorf("CREATED:%s", shell.ConfigFile)
-		}
+		return nil
 	}
 
 	// Create user config file directory if it doesn't exist
