@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -218,7 +217,7 @@ func formatLastVisit(timestamp int64) string {
 }
 
 // handleEmptyQuery handles the case when no query is provided from shell integration
-func handleEmptyQuery(config *NavigationConfig) {
+func handleEmptyQuery() {
 	// Get database config
 	cfg := GetConfig()
 	dbConfig := database.DatabaseConfig{Path: cfg.DatabasePath}
@@ -244,25 +243,4 @@ func handleEmptyQuery(config *NavigationConfig) {
 
 	// Output the best directory
 	fmt.Print(entries[0].Path) // No newline for shell integration
-}
-
-// executeZoink is the main command handler for the root command
-func executeZoink(cmd *cobra.Command, args []string) {
-	// Handle version flag (for backwards compatibility)
-	if version, _ := cmd.Flags().GetBool("version"); version {
-		handleVersion()
-		return
-	}
-
-	// Main navigation logic
-	query := strings.Join(args, " ")
-	config := buildConfigFromFlags(cmd)
-
-	// Handle empty query - return most frecent directory for shell integration
-	if query == "" && !config.Interactive && !config.ListOnly {
-		handleEmptyQuery(config)
-		return
-	}
-
-	handleNavigation(query, config)
 }

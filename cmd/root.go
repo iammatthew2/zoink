@@ -31,7 +31,15 @@ Direct usage:
   zoink setup            Setup shell integration
   zoink stats            Show usage statistics`,
 	Args: cobra.ArbitraryArgs,
-	Run:  executeZoink,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Handle version flag
+		if version, _ := cmd.Flags().GetBool("version"); version {
+			handleVersion()
+			return
+		}
+		// For root command without subcommands, just show help
+		cmd.Help()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -44,13 +52,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
-
 	rootCmd.Flags().BoolP("version", "V", false, "Show version information")
-	rootCmd.Flags().BoolP("interactive", "i", false, "Interactive selection when multiple matches")
-	rootCmd.Flags().BoolP("list", "l", false, "List matches without navigating")
-	rootCmd.Flags().BoolP("echo", "e", false, "Echo path only (for shell integration)")
-	rootCmd.Flags().BoolP("recent", "t", false, "Prefer recent directories")
-	rootCmd.Flags().BoolP("frequent", "f", false, "Prefer frequently used directories")
 }
 
 // initConfig loads the configuration
