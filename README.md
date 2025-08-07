@@ -56,7 +56,7 @@ cd ~/baz/somePlace
 # Quick navigation with frecency ranking (using shell alias)
 z foo                      # → ~/foo/my-app (most frequent/recent match)
 z bar                      # → ~/bar/someThing
-z foo --interactive        # Interactive selection (coming soon)
+z foo --interactive        # Interactive selection with fzf (requires fzf)
 z foo --list               # Lists all tracked directories with visit counts
 z --echo foo               # Prints best match path only
 ```
@@ -85,8 +85,8 @@ zoink setup
 
 ### Roadmap
 - [x] **Fuzzy matching** for directory queries (fzf-inspired algorithm)
+- [x] **Interactive selection** using fzf for shell integration
 - [ ] **Package distribution** (Homebrew, etc.)
-- [ ] **Interactive selection** using survey/v2
 - [ ] **Import from existing tools** (z.sh, fasd, autojump)
 - [ ] **Advanced ranking** options (recent/frequent flags)
 - [ ] **Performance optimization** for large databases

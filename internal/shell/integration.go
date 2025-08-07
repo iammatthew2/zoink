@@ -41,15 +41,36 @@ z() {
         result=$(zoink find)
         [ -n "$result" ] && [ -d "$result" ] && cd "$result"
     else
-        # All arguments go to zoink find - let it handle everything
-        local result
-        result=$(zoink find "$@")
-        if [ $? -eq 0 ] && [ -n "$result" ] && [ -d "$result" ]; then
-            cd "$result"
-        else
-            # If no valid directory returned, just show the output
-            echo "$result"
-        fi
+        # Check if interactive flag is present
+        case "$*" in
+            *-i*|*--interactive*)
+                # Interactive mode
+                if ! command -v fzf >/dev/null 2>&1; then
+                    echo "fzf is required for interactive mode. Please install fzf." >&2
+                    return 1
+                fi
+                # Strip interactive flags and use remaining args for search
+                local search_args=$(echo "$@" | sed 's/-i//g; s/--interactive//g' | xargs)
+                local dir
+                if [ -n "$search_args" ]; then
+                    dir=$(zoink find --list --echo "$search_args" | fzf --height 40% --reverse --header "Select directory:")
+                else
+                    dir=$(zoink find --list --echo | fzf --height 40% --reverse --header "Select directory:")
+                fi
+                [ -n "$dir" ] && [ -d "$dir" ] && cd "$dir"
+                ;;
+            *)
+                # Non-interactive mode
+                local result
+                result=$(zoink find "$@")
+                if [ $? -eq 0 ] && [ -n "$result" ] && [ -d "$result" ]; then
+                    cd "$result"
+                else
+                    # If no valid directory returned, just show the output
+                    echo "$result"
+                fi
+                ;;
+        esac
     fi
 }
 
@@ -78,13 +99,44 @@ function z
             cd "$result"
         end
     else
-        # All arguments go to zoink find - let it handle everything
-        set result (zoink find $argv)
-        if test $status -eq 0 -a -n "$result" -a -d "$result"
-            cd "$result"
+        # Check if interactive flag is present
+        set interactive_mode 0
+        for arg in $argv
+            if test "$arg" = "-i" -o "$arg" = "--interactive"
+                set interactive_mode 1
+                break
+            end
+        end
+        
+        if test $interactive_mode -eq 1
+            # Interactive mode with fzf
+            if not command -v fzf >/dev/null 2>&1
+                echo "fzf is required for interactive mode. Please install fzf." >&2
+                return 1
+            end
+            # Strip interactive flags and use remaining args for search
+            set search_args
+            for arg in $argv
+                if test "$arg" != "-i" -a "$arg" != "--interactive"
+                    set search_args $search_args $arg
+                end
+            end
+            set dir
+            if test (count $search_args) -gt 0
+                set dir (zoink find --list --echo $search_args | fzf --height 40% --reverse --header "Select directory:")
+            else
+                set dir (zoink find --list --echo | fzf --height 40% --reverse --header "Select directory:")
+            end
+            test -n "$dir" -a -d "$dir"; and cd "$dir"
         else
-            # If no valid directory returned, just show the output
-            echo "$result"
+            # Non-interactive mode
+            set result (zoink find $argv)
+            if test $status -eq 0 -a -n "$result" -a -d "$result"
+                cd "$result"
+            else
+                # If no valid directory returned, just show the output
+                echo "$result"
+            end
         end
     end
 end

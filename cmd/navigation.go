@@ -109,19 +109,20 @@ func handleNavigation(query string, config *NavigationConfig) {
 
 	// Handle list-only mode
 	if config.ListOnly {
-		printDirectoryList(entries)
+		printDirectoryList(entries, config.EchoOnly)
 		return
 	}
 
 	// Select directory
 	selectedPath := selectDirectory(entries, config)
 	if selectedPath == "" {
-		os.Exit(1) // User cancelled or error
+		os.Exit(1)
 	}
 
 	// Output the selected path
 	if config.EchoOnly {
-		fmt.Print(selectedPath) // No newline for shell integration
+		// No newline for shell integration
+		fmt.Print(selectedPath)
 	} else {
 		fmt.Println(selectedPath)
 	}
@@ -169,9 +170,12 @@ func selectInteractively(entries []*database.DirectoryEntry) string {
 }
 
 // printDirectoryList prints a formatted list of directories
-func printDirectoryList(entries []*database.DirectoryEntry) {
-	if len(entries) == 0 {
-		fmt.Println("No directories found")
+func printDirectoryList(entries []*database.DirectoryEntry, simpleFormat bool) {
+	if simpleFormat {
+		// just paths, one per line
+		for _, entry := range entries {
+			fmt.Println(entry.Path)
+		}
 		return
 	}
 
@@ -231,16 +235,18 @@ func handleEmptyQuery() {
 	// Open database
 	db, err := database.New(dbConfig)
 	if err != nil {
-		return // Silently fail for shell integration
+		// Silently fail for shell integration
+		return
 	}
 	defer db.Close()
 
 	// Get all entries and return the best one (most frecent)
 	entries, err := db.Query("", 1) // Get top 1 result with empty query
 	if err != nil || len(entries) == 0 {
-		return // Silently fail for shell integration
+		// Silently fail for shell integration
+		return
 	}
 
 	// Output the best directory
-	fmt.Print(entries[0].Path) // No newline for shell integration
+	fmt.Print(entries[0].Path)
 }
