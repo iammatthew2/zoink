@@ -1,4 +1,7 @@
+NOTE: z <empty query> was working until this bookmarking WIP commit. Reverted. Revisit.
+
 # Zoink
+
 
 Zoink is a fast, cross-shell tool for directory navigation with directory bookmarking. It is inspired by [z.sh](https://github.com/rupa/z), [fasd](https://github.com/clvv/fasd), and [autojump](https://github.com/wting/autojump), leveraging a similar algorithm for fuzzy/frecency ranking for directory lookup.
 
@@ -88,3 +91,4 @@ zoink setup
 - [ ] **Package distribution** (Homebrew, etc.)
 - [ ] **Bookmarking**
 - [ ] **Advanced configuration** options
+- [ ] **Refactor shell integration code** - Move shell-specific code from `integration.go` constants to separate `.sh` files (bash.sh, fish.sh) for better maintainability and IDE support

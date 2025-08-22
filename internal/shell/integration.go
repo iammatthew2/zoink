@@ -41,8 +41,11 @@ z() {
         result=$(zoink find)
         [ -n "$result" ] && [ -d "$result" ] && cd "$result"
     else
-        # Check if interactive flag is present
+        # Check for special flags
         case "$*" in
+            *-b*|*--bookmark*)
+                zoink bookmark "$@"
+                ;;
             *-i*|*--interactive*)
                 # Interactive mode
                 if ! command -v fzf >/dev/null 2>&1; then
@@ -108,8 +111,19 @@ function z
             cd "$result"
         end
     else
-        # Check if interactive flag is present
+        # Check for special flags
+        set bookmark_mode 0
         set interactive_mode 0
+        
+        # Check for bookmark flag
+        for arg in $argv
+            if test "$arg" = "-b" -o "$arg" = "--bookmark"
+                set bookmark_mode 1
+                break
+            end
+        end
+        
+        # Check for interactive flag
         for arg in $argv
             if test "$arg" = "-i" -o "$arg" = "--interactive"
                 set interactive_mode 1
@@ -117,7 +131,10 @@ function z
             end
         end
         
-        if test $interactive_mode -eq 1
+        if test $bookmark_mode -eq 1
+            # Bookmark mode - let Cobra handle validation
+            zoink bookmark $argv
+        else if test $interactive_mode -eq 1
             # Interactive mode with fzf
             if not command -v fzf >/dev/null 2>&1
                 echo "fzf is required for interactive mode. Please install fzf." >&2
