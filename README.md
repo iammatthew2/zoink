@@ -1,8 +1,8 @@
 # Zoink
 
-Zoink is a fast, cross-shell tool for directory navigation, directory bookmarking and shell snippet management/execution. It is inspired by [z.sh](https://github.com/rupa/z), [fasd](https://github.com/clvv/fasd), and [autojump](https://github.com/wting/autojump), leveraging a similar algorithm for fuzzy/frecency ranking for directory lookup.
+Zoink is a fast, cross-shell tool for directory navigation with directory bookmarking. It is inspired by [z.sh](https://github.com/rupa/z), [fasd](https://github.com/clvv/fasd), and [autojump](https://github.com/wting/autojump), leveraging a similar algorithm for fuzzy/frecency ranking for directory lookup.
 
-`zoink` is an executable that can be called for setup and configuration. The alias `z` is the daily driver.
+The alias `z` is the daily driver with the `zoink` executable providing setup and configuration options.
 
 ## Quick start
 
@@ -59,6 +59,7 @@ z bar                      # → ~/bar/someThing
 z foo --interactive        # Interactive selection with fzf (requires fzf)
 z foo --list               # Lists all tracked directories with visit counts
 z --echo foo               # Prints best match path only
+z                          # Navigate to previous directory if no query provided
 ```
 
 ## Development
@@ -84,10 +85,6 @@ zoink setup
 - **Modular**: Clean separation of concerns, testable components
 
 ### Roadmap
-- [x] **Fuzzy matching** for directory queries (fzf-inspired algorithm)
-- [x] **Interactive selection** using fzf for shell integration
 - [ ] **Package distribution** (Homebrew, etc.)
-- [ ] **Import from existing tools** (z.sh, fasd, autojump)
-- [ ] **Advanced ranking** options (recent/frequent flags)
-- [ ] **Performance optimization** for large databases
+- [ ] **Bookmarking**
 - [ ] **Advanced configuration** options

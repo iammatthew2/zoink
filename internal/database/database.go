@@ -61,8 +61,13 @@ func New(config DatabaseConfig) (*Database, error) {
 	return db, nil
 }
 
-// AddVisit records a visit to a directory
-func (db *Database) AddVisit(path string) error {
+// AddVisit records a visit to a directory with optional previous directory
+func (db *Database) AddVisit(path string, previousPath ...string) error {
+	// Save previous directory if provided
+	if len(previousPath) > 0 && previousPath[0] != "" {
+		SavePreviousPath(previousPath[0])
+	}
+
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
@@ -208,6 +213,61 @@ func (db *Database) Save() error {
 // Close saves the database and cleans up resources
 func (db *Database) Close() error {
 	return db.Save()
+}
+
+// SavePreviousPath saves the previous directory path to a file
+func SavePreviousPath(path string) error {
+	// Get config directory and create previous path file
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		// Fallback to home directory
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		configDir = filepath.Join(home, ".config")
+	}
+
+	previousPathFile := filepath.Join(configDir, "zoink", "previous.txt")
+
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(previousPathFile), 0755); err != nil {
+		return err
+	}
+
+	// Write current path to file
+	return os.WriteFile(previousPathFile, []byte(path), 0644)
+}
+
+// GetPreviousPath retrieves the previous directory path from file
+func GetPreviousPath() (string, error) {
+	// Get config directory
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		// Fallback to home directory
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		configDir = filepath.Join(home, ".config")
+	}
+
+	previousPathFile := filepath.Join(configDir, "zoink", "previous.txt")
+
+	data, err := os.ReadFile(previousPathFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("no previous directory available")
+		}
+		return "", err
+	}
+
+	path := strings.TrimSpace(string(data))
+	if path == "" {
+		return "", fmt.Errorf("no previous directory available")
+	}
+
+	return path, nil
 }
 
 // save writes the database to disk (caller must hold lock)

@@ -15,7 +15,7 @@ func GenerateHook(shellName string) string {
 const bashZshHook = `# Zoink shell integration
 zoink_track() {
     if command -v zoink >/dev/null 2>&1; then
-        zoink add "$PWD" >/dev/null 2>&1
+        zoink add "$PWD" "$OLDPWD" >/dev/null 2>&1
     fi
 }
 
@@ -80,7 +80,7 @@ zoink_track`
 const fishHook = `# Zoink shell integration
 function zoink_track
     if command -v zoink >/dev/null 2>&1
-        zoink add $PWD >/dev/null 2>&1
+        zoink add $PWD $OLDPWD >/dev/null 2>&1
     end
 end
 
@@ -89,6 +89,15 @@ function cd
     builtin cd $argv
     and zoink_track
 end
+
+# Hook into pushd/popd
+pushd() {
+    builtin pushd "$@" && zoink_track
+}
+
+popd() {
+    builtin popd "$@" && zoink_track
+}
 
 # Main z command for navigation
 function z

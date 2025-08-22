@@ -220,33 +220,13 @@ func formatLastVisit(timestamp int64) string {
 	}
 }
 
-// handleEmptyQuery handles the case when no query is provided from shell integration
+// handleEmptyQuery case when no query is provided: navigate to previous directory
 func handleEmptyQuery() {
-	// Get database config
-	cfg := GetConfig()
-	dbConfig := database.DatabaseConfig{Path: cfg.DatabasePath}
-
-	// Check if database exists
-	if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
-		// No database yet - nothing to do
-		return
-	}
-
-	// Open database
-	db, err := database.New(dbConfig)
+	previousPath, err := database.GetPreviousPath()
 	if err != nil {
-		// Silently fail for shell integration
-		return
-	}
-	defer db.Close()
-
-	// Get all entries and return the best one (most frecent)
-	entries, err := db.Query("", 1) // Get top 1 result with empty query
-	if err != nil || len(entries) == 0 {
-		// Silently fail for shell integration
-		return
+		fmt.Fprintf(os.Stderr, "no previous directory available\n")
+		os.Exit(1)
 	}
 
-	// Output the best directory
-	fmt.Print(entries[0].Path)
+	fmt.Print(previousPath)
 }

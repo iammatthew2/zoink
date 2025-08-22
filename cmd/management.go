@@ -33,12 +33,24 @@ var cleanCmd = &cobra.Command{
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add [directory]",
+	Use:   "add [directory] [previous-directory]",
 	Short: "Manually add directory to database",
 	Long:  `Manually add a directory to the zoink database without visiting it.`,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(2), // Allow 0-2 arguments
 	Run: func(cmd *cobra.Command, args []string) {
-		handleAdd(args[0])
+		if len(args) == 0 {
+			// No arguments - use current directory
+			currentDir, err := os.Getwd()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting current directory: %v\n", err)
+				os.Exit(1)
+			}
+			handleAdd(currentDir)
+		} else if len(args) == 1 {
+			handleAdd(args[0])
+		} else {
+			handleAddWithPrevious(args[0], args[1])
+		}
 	},
 }
 
@@ -268,6 +280,51 @@ func handleAdd(dir string) {
 	// Only print success in verbose mode to avoid cluttering shell output
 	if verbose, _ := rootCmd.PersistentFlags().GetBool("verbose"); verbose {
 		fmt.Printf("Added visit to: %s\n", absDir)
+	}
+}
+
+// handleAddWithPrevious manually adds a directory to the database with previous directory
+func handleAddWithPrevious(dir string, previousDir string) {
+	// Convert to absolute path
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error resolving path '%s': %v\n", dir, err)
+		os.Exit(1)
+	}
+
+	// Check if directory exists
+	if _, err := os.Stat(absDir); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "Error: Directory '%s' does not exist\n", absDir)
+		os.Exit(1)
+	}
+
+	// Get database config
+	cfg := GetConfig()
+	dbConfig := database.DatabaseConfig{Path: cfg.DatabasePath}
+
+	// Open database
+	db, err := database.New(dbConfig)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening database: %v\n", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// Add visit with previous directory
+	if err := db.AddVisit(absDir, previousDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error adding visit: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Save database
+	if err := db.Save(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error saving database: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Only print success in verbose mode to avoid cluttering shell output
+	if verbose, _ := rootCmd.PersistentFlags().GetBool("verbose"); verbose {
+		fmt.Printf("Added visit to: %s (from: %s)\n", absDir, previousDir)
 	}
 }
 
