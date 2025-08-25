@@ -65,23 +65,11 @@ var removeCmd = &cobra.Command{
 	},
 }
 
-// bookmarkCmd represents the bookmark command
-var bookmarkCmd = &cobra.Command{
-	Use:   "bookmark [name]",
-	Short: "Add bookmark to current directory",
-	Long:  `Add a bookmark to the current directory for quick navigation.`,
-	Args:  cobra.ArbitraryArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		handleBookmarkArgs(args)
-	},
-}
-
 func init() {
 	rootCmd.AddCommand(statsCmd)
 	rootCmd.AddCommand(cleanCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(removeCmd)
-	rootCmd.AddCommand(bookmarkCmd)
 }
 
 // handleStats displays usage statistics
@@ -400,66 +388,4 @@ func handleRemove(dir string) {
 	}
 
 	fmt.Printf("Removed: %s\n", absDir)
-}
-
-// handleBookmarkArgs processes bookmark command arguments
-func handleBookmarkArgs(args []string) {
-	// Filter out flags and get the bookmark name
-	var bookmarkName string
-	for _, arg := range args {
-		if arg != "-b" && arg != "--bookmark" {
-			bookmarkName = arg
-			break
-		}
-	}
-
-	if bookmarkName == "" {
-		fmt.Fprintf(os.Stderr, "Error: bookmark requires a name\n")
-		fmt.Fprintf(os.Stderr, "Usage: zoink bookmark <name>\n")
-		os.Exit(1)
-	}
-
-	handleBookmark(bookmarkName)
-}
-
-// handleBookmark adds a bookmark to the current directory
-func handleBookmark(bookmarkName string) {
-	// Get current directory
-	currentDir, err := os.Getwd()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting current directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Get database config
-	cfg := GetConfig()
-	dbConfig := database.DatabaseConfig{Path: cfg.DatabasePath}
-
-	// Check if database exists
-	if _, err := os.Stat(cfg.DatabasePath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Database does not exist yet. Visit some directories first.\n")
-		os.Exit(1)
-	}
-
-	// Open database
-	db, err := database.New(dbConfig)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening database: %v\n", err)
-		os.Exit(1)
-	}
-	defer db.Close()
-
-	// Add bookmark
-	if err := db.AddBookmark(currentDir, bookmarkName); err != nil {
-		fmt.Fprintf(os.Stderr, "Error adding bookmark: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Save database
-	if err := db.Save(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error saving database: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Bookmarked '%s' as '%s'\n", currentDir, bookmarkName)
 }

@@ -17,9 +17,8 @@ import (
 type DirectoryEntry struct {
 	Path         string
 	VisitCount   uint32
-	LastVisited  int64  // Unix timestamp
-	FirstVisited int64  // Unix timestamp
-	BookmarkName string // Optional bookmark name (empty if not bookmarked)
+	LastVisited  int64 // Unix timestamp
+	FirstVisited int64 // Unix timestamp
 }
 
 // MatchResult represents a search result with both fuzzy and frecency scores
@@ -383,15 +382,6 @@ func writeEntry(w io.Writer, entry *DirectoryEntry) error {
 		return err
 	}
 
-	// Write bookmark name length and name
-	bookmarkBytes := []byte(entry.BookmarkName)
-	if err := binary.Write(w, binary.LittleEndian, uint32(len(bookmarkBytes))); err != nil {
-		return err
-	}
-	if _, err := w.Write(bookmarkBytes); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -424,22 +414,6 @@ func readEntry(r io.Reader) (*DirectoryEntry, error) {
 		return nil, err
 	}
 
-	// Read bookmark name length and name
-	var bookmarkLen uint32
-	if err := binary.Read(r, binary.LittleEndian, &bookmarkLen); err != nil {
-		// Handle legacy databases without bookmark field
-		entry.BookmarkName = ""
-		return entry, nil
-	}
-
-	bookmarkBytes := make([]byte, bookmarkLen)
-	if _, err := io.ReadFull(r, bookmarkBytes); err != nil {
-		// Handle legacy databases without bookmark field
-		entry.BookmarkName = ""
-		return entry, nil
-	}
-
-	entry.BookmarkName = string(bookmarkBytes)
 	return entry, nil
 }
 
@@ -600,78 +574,4 @@ func calculateFuzzyScore(text, textLower, pattern, patternLower string) int {
 // isWordBoundary checks if a character is a word boundary
 func isWordBoundary(char rune) bool {
 	return char == '/' || char == '-' || char == '_' || char == ' ' || char == '.'
-}
-
-// AddBookmark adds a bookmark to a directory
-func (db *Database) AddBookmark(path, bookmarkName string) error {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-
-	cleanPath := filepath.Clean(path)
-
-	// Check if directory exists in database
-	entry, exists := db.entries[cleanPath]
-	if !exists {
-		return fmt.Errorf("directory '%s' not found in database", cleanPath)
-	}
-
-	// Check if bookmark name is already used by another directory
-	for existingPath, existingEntry := range db.entries {
-		if existingPath != cleanPath && existingEntry.BookmarkName == bookmarkName {
-			return fmt.Errorf("bookmark name '%s' is already used by '%s'", bookmarkName, existingPath)
-		}
-	}
-
-	entry.BookmarkName = bookmarkName
-	return nil
-}
-
-// RemoveBookmark removes a bookmark from a directory
-func (db *Database) RemoveBookmark(path string) error {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-
-	cleanPath := filepath.Clean(path)
-
-	entry, exists := db.entries[cleanPath]
-	if !exists {
-		return fmt.Errorf("directory '%s' not found in database", cleanPath)
-	}
-
-	entry.BookmarkName = ""
-	return nil
-}
-
-// GetBookmark returns the directory entry for a given bookmark name
-func (db *Database) GetBookmark(bookmarkName string) (*DirectoryEntry, error) {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-
-	for _, entry := range db.entries {
-		if entry.BookmarkName == bookmarkName {
-			return entry, nil
-		}
-	}
-
-	return nil, fmt.Errorf("bookmark '%s' not found", bookmarkName)
-}
-
-// GetAllBookmarks returns all bookmarked directories
-func (db *Database) GetAllBookmarks() ([]*DirectoryEntry, error) {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-
-	var bookmarks []*DirectoryEntry
-	for _, entry := range db.entries {
-		if entry.BookmarkName != "" {
-			bookmarks = append(bookmarks, entry)
-		}
-	}
-
-	// Sort by bookmark name
-	sort.Slice(bookmarks, func(i, j int) bool {
-		return bookmarks[i].BookmarkName < bookmarks[j].BookmarkName
-	})
-
-	return bookmarks, nil
 }
