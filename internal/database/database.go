@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gofrs/flock"
 )
 
 // DirectoryEntry represents a single directory with frecency data
@@ -204,6 +206,15 @@ func (db *Database) CleanupMissing() (int, error) {
 
 // Save persists the database to disk
 func (db *Database) Save() error {
+	// Create file lock to prevent concurrent access from multiple processes
+	lockFile := flock.New(db.path + ".lock")
+
+	// Acquire exclusive lock (blocks if another process is saving)
+	if err := lockFile.Lock(); err != nil {
+		return fmt.Errorf("failed to acquire database lock: %w", err)
+	}
+	defer lockFile.Unlock()
+
 	db.mutex.RLock()
 	defer db.mutex.RUnlock()
 
@@ -313,6 +324,19 @@ func (db *Database) save() error {
 
 // load reads the database from disk
 func (db *Database) load() error {
+	// Create shared lock to prevent loading while another process is saving
+	lockFile := flock.New(db.path + ".lock")
+
+	// Acquire shared lock (allows multiple readers, blocks writers)
+	if err := lockFile.RLock(); err != nil {
+		// If we can't get the lock, it might be a new database
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to acquire read lock: %w", err)
+	}
+	defer lockFile.Unlock()
+
 	file, err := os.Open(db.path)
 	if err != nil {
 		if os.IsNotExist(err) {

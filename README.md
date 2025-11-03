@@ -88,3 +88,4 @@ zoink setup
 - [ ] **Package distribution** (Homebrew, etc.)
 - [ ] **Bookmarking**
 - [ ] **Advanced configuration** options
+- [ ] **Inefficient DB usage (bbol instead?)**)
